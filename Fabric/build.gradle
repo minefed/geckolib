@@ -9,6 +9,8 @@ plugins {
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
+evaluationDependsOn(':core')
+
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
 
 base {
