@@ -39,6 +39,7 @@ public class AnimationController<T extends GeoAnimatable> {
 	protected final String name;
 	protected final AnimationStateHandler<T> stateHandler;
 	protected final Map<String, BoneAnimationQueue> boneAnimationQueues = new Object2ObjectOpenHashMap<>();
+	private final Map<String, BoneAnimationQueue> reusableBoneAnimationQueues = new Object2ObjectOpenHashMap<>();
 	protected final Map<String, BoneSnapshot> boneSnapshots = new Object2ObjectOpenHashMap<>();
 	protected Queue<AnimationProcessor.QueuedAnimation> animationQueue = new LinkedList<>();
 
@@ -634,8 +635,35 @@ public class AnimationController<T extends GeoAnimatable> {
 		this.boneAnimationQueues.clear();
 
 		for (CoreGeoBone modelRenderer : modelRendererList) {
-			this.boneAnimationQueues.put(modelRenderer.getName(), new BoneAnimationQueue(modelRenderer));
+			BoneAnimationQueue queue = this.reusableBoneAnimationQueues.get(modelRenderer.getName());
+
+			// Reuse the previous frame's queue for the same bone instance, emptied to match a freshly created one
+			if (queue != null && queue.bone() == modelRenderer) {
+				clearQueues(queue);
+			}
+			else {
+				queue = new BoneAnimationQueue(modelRenderer);
+
+				this.reusableBoneAnimationQueues.put(modelRenderer.getName(), queue);
+			}
+
+			this.boneAnimationQueues.put(modelRenderer.getName(), queue);
 		}
+
+		if (this.reusableBoneAnimationQueues.size() != this.boneAnimationQueues.size())
+			this.reusableBoneAnimationQueues.keySet().retainAll(this.boneAnimationQueues.keySet());
+	}
+
+	private static void clearQueues(BoneAnimationQueue queue) {
+		queue.rotationXQueue().clear();
+		queue.rotationYQueue().clear();
+		queue.rotationZQueue().clear();
+		queue.positionXQueue().clear();
+		queue.positionYQueue().clear();
+		queue.positionZQueue().clear();
+		queue.scaleXQueue().clear();
+		queue.scaleYQueue().clear();
+		queue.scaleZQueue().clear();
 	}
 
 	/**
