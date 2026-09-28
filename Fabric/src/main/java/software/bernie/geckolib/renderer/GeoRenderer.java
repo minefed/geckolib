@@ -288,13 +288,14 @@ public interface GeoRenderer<T extends GeoAnimatable> {
 		RenderUtils.translateAwayFromPivotPoint(poseStack, cube);
 
 		Matrix3f normalisedPoseState = poseStack.last().normal();
-		Matrix4f poseState = new Matrix4f(poseStack.last().pose());
+		Matrix4f poseState = poseStack.last().pose();
+		Vector3f normal = GeoRenderScratch.INSTANCE.get().normal;
 
 		for (GeoQuad quad : cube.quads()) {
 			if (quad == null)
 				continue;
 
-			Vector3f normal = normalisedPoseState.transform(new Vector3f(quad.normal()));
+			normalisedPoseState.transform(quad.normal(), normal);
 			
 			RenderUtils.fixInvertedFlatCube(cube, normal);
 			createVerticesOfQuad(quad, poseState, normal, buffer, packedLight, packedOverlay, red, green, blue, alpha);
@@ -306,9 +307,11 @@ public interface GeoRenderer<T extends GeoAnimatable> {
 	 */
 	default void createVerticesOfQuad(GeoQuad quad, Matrix4f poseState, Vector3f normal, VertexConsumer buffer,
 			int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
+		Vector4f vector4f = GeoRenderScratch.INSTANCE.get().position;
+
 		for (GeoVertex vertex : quad.vertices()) {
 			Vector3f position = vertex.position();			
-			Vector4f vector4f = poseState.transform(new Vector4f(position.x(), position.y(), position.z(), 1.0f));
+			poseState.transform(position.x(), position.y(), position.z(), 1.0f, vector4f);
 
 			buffer.vertex(vector4f.x(), vector4f.y(), vector4f.z(), red, green, blue, alpha, vertex.texU(),
 					vertex.texV(), packedOverlay, packedLight, normal.x(), normal.y(), normal.z());
