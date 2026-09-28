@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -76,18 +77,29 @@ public final class GeckoLibNetwork {
         callback.onReadyToSend(packet);
     }
 
+    // The encoded buffer is shared between recipients: Fabric's payload only ever copies it when writing or handling
     public static void sendToTrackingEntityAndSelf(AbstractPacket packet, Entity entityToTrack) {
+        FriendlyByteBuf buf = null;
+
         for (ServerPlayer trackingPlayer : PlayerLookup.tracking(entityToTrack)) {
-            ServerPlayNetworking.send(trackingPlayer, packet.getPacketID(), packet.encode());
+            if (buf == null)
+                buf = packet.encode();
+
+            ServerPlayNetworking.send(trackingPlayer, packet.getPacketID(), buf);
         }
 
         if (entityToTrack instanceof ServerPlayer serverPlayer)
-            ServerPlayNetworking.send(serverPlayer, packet.getPacketID(), packet.encode());
+            ServerPlayNetworking.send(serverPlayer, packet.getPacketID(), buf == null ? packet.encode() : buf);
     }
 
     public static void sendToEntitiesTrackingChunk(AbstractPacket packet, ServerLevel level, BlockPos blockPos) {
+        FriendlyByteBuf buf = null;
+
         for (ServerPlayer trackingPlayer : PlayerLookup.tracking(level, blockPos)) {
-            ServerPlayNetworking.send(trackingPlayer, packet.getPacketID(), packet.encode());
+            if (buf == null)
+                buf = packet.encode();
+
+            ServerPlayNetworking.send(trackingPlayer, packet.getPacketID(), buf);
         }
     }
 
