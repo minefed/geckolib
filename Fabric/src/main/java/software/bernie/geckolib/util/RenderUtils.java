@@ -40,6 +40,8 @@ import javax.annotation.Nullable;
  * Helper class for various methods and functions useful while rendering
  */
 public final class RenderUtils {
+	private static final ThreadLocal<Quaternionf> CUBE_ROTATION = ThreadLocal.withInitial(Quaternionf::new);
+
 	public static void translateMatrixToBone(PoseStack poseStack, CoreGeoBone bone) {
 		poseStack.translate(-bone.getPosX() / 16f, bone.getPosY() / 16f, bone.getPosZ() / 16f);
 	}
@@ -57,10 +59,11 @@ public final class RenderUtils {
 
 	public static void rotateMatrixAroundCube(PoseStack poseStack, GeoCube cube) {
 		Vec3 rotation = cube.rotation();
+		Quaternionf quaternion = CUBE_ROTATION.get();
 
-		poseStack.mulPose(new Quaternionf().rotationXYZ(0, 0, (float)rotation.z()));
-		poseStack.mulPose(new Quaternionf().rotationXYZ(0, (float)rotation.y(), 0));
-		poseStack.mulPose(new Quaternionf().rotationXYZ((float)rotation.x(), 0, 0));
+		poseStack.mulPose(quaternion.rotationXYZ(0, 0, (float)rotation.z()));
+		poseStack.mulPose(quaternion.rotationXYZ(0, (float)rotation.y(), 0));
+		poseStack.mulPose(quaternion.rotationXYZ((float)rotation.x(), 0, 0));
 	}
 
 	public static void scaleMatrixForBone(PoseStack poseStack, CoreGeoBone bone) {
